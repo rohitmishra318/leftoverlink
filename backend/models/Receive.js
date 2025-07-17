@@ -9,12 +9,12 @@ const ReceiveSchema = new mongoose.Schema({
   },
   donatedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'user',
     required: true,
   },
   receivedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'user',
     required: true,
   },
   receivedAt: {

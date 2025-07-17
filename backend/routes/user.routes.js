@@ -37,8 +37,20 @@ router.post('/accept',authenticateToken , UserController.acceptDonation);
 // In routes/user.routes.js
 router.get('/my-received', authenticateToken, UserController.getMyReceived);
 
+router.get('/donationhistory', authenticateToken, UserController.getDonationHistory);
+router.get('/receivedhistory', authenticateToken, UserController.getReceivedHistory);
+
+
+
 
 router.get('/ngos', UserController.getAllNGOs);
+
+router.get('/received-summary', authenticateToken, UserController.getreceivedgraph);
+
+router.get('/donation-summary', authenticateToken, UserController.getdonatedgraph);
+
+
+router.get('/suggest-ngos', UserController.getSuggestedNGOs);
 
 module.exports = router;
 

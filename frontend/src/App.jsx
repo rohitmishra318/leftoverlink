@@ -1,5 +1,5 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Homepage from "./pages/homepage.jsx";
 import LoginPage from "./pages/loginpage";
 import SignupPage from "./pages/signuppage";
@@ -10,23 +10,21 @@ import Choose from "./pages/choose.jsx";
 import ProtectedRoute from "./components/ProtectRoutes.jsx";
 import Navbar from "./components/Navbar.jsx";
 import Profile from "./pages/profile.jsx";
-import { useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
+import socket from "./socket.js";
+import VolunteerSignup from "./pages/volunteersignup.jsx";
 
-import socket from "./socket.js"; // Import your socket instance
-
-
-
+// ✅ WhatsApp floating button
+import WhatsAppJoinButton from "./components/Whatsapp.jsx";
 
 function App() {
-   useEffect(() => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    const decoded = jwtDecode(token);
-    socket.emit("join", decoded._id); // ✅ Join room with user ID
-  }
-}, []);
-
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const decoded = jwtDecode(token);
+      socket.emit("join", decoded._id); // ✅ Join room with user ID
+    }
+  }, []);
 
   return (
     <Router>
@@ -36,11 +34,15 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/volunteersignup" element={<ProtectedRoute><VolunteerSignup /></ProtectedRoute>} />
         <Route path="/donor" element={<ProtectedRoute><Donor /></ProtectedRoute>} />
         <Route path="/donor/nearestreceiver" element={<ProtectedRoute><ReceiverDetail /></ProtectedRoute>} />
         <Route path="/choose" element={<ProtectedRoute><Choose /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       </Routes>
+
+      {/* ✅ Floating WhatsApp Join Button */}
+      <WhatsAppJoinButton />
     </Router>
   );
 }

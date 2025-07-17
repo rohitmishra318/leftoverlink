@@ -39,6 +39,7 @@ module.exports.registeruser = async (req, res) => {
 
 // Login user
 module.exports.loginuser = async (req, res) => {
+  console.log("Login attempt:", req.body);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -120,7 +121,7 @@ module.exports.acceptDonation = async (req, res) => {
       location,
       expiry
     });
-
+     console.log("Accepting donation for food:", food);
     if (!food) return res.status(404).json({ message: "Food not found" });
 
     if (food.status !== "available") {
@@ -171,9 +172,183 @@ module.exports.getMyReceived = async (req, res) => {
 module.exports.getAllNGOs = async (req, res) => {
   try {
     const ngos = await Ngo.find().select('name email location lat lng phone address');
+    console.log("Fetched NGOs:", ngos);
     res.status(200).json({ ngos });
   } catch (err) {
     console.error("Error fetching NGOs:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// Get received graph (who donated to me)
+module.exports.getreceivedgraph = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const received = await Receive.aggregate([
+      { $match: { receivedBy: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: "$donatedBy",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "donorInfo"
+        }
+      },
+      { $unwind: "$donorInfo" },
+      {
+        $project: {
+          _id: 0,
+          user: "$donorInfo._id",
+          name: {
+            $concat: [
+              "$donorInfo.fullname.firstname",
+              " ",
+              "$donorInfo.fullname.lastname"
+            ]
+          },
+          count: 1
+        }
+      }
+    ]);
+    console.log("Received graph data:", received);
+    res.status(200).json(received);
+  } catch (err) {
+    console.error("Error fetching received graph data:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get donated graph (who I donated to)
+module.exports.getdonatedgraph = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const donated = await Receive.aggregate([
+      { $match: { donatedBy: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: "$receivedBy",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "receiverInfo"
+        }
+      },
+      { $unwind: "$receiverInfo" },
+      {
+        $project: {
+          _id: 0,
+          user: "$receiverInfo._id",
+          name: {
+            $concat: [
+              "$receiverInfo.fullname.firstname",
+              " ",
+              "$receiverInfo.fullname.lastname"
+            ]
+          },
+          count: 1
+        }
+      }
+    ]);
+
+    res.status(200).json(donated);
+  } catch (err) {
+    console.error("Error fetching donated graph data:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+exports.getDonationHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const donations = await Receive.find({ donatedBy: userId })
+      .populate({
+        path: 'food',
+        select: 'foodType quantity expiry location'
+      })
+      .populate({
+        path: 'receivedBy',
+        select: 'fullname email'
+      });
+
+    if (!donations || donations.length === 0) {
+      return res.status(404).json({ message: "No donation history found" });
+    }
+
+    res.status(200).json({ donations });
+  } catch (err) {
+    console.error("Error fetching donation history:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+exports.getReceivedHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const received = await Receive.find({ receivedBy: userId })
+      .populate({
+        path: 'food',
+        select: 'foodType quantity expiry location'
+      })
+      .populate({
+        path: 'donatedBy',
+        select: 'fullname email'
+      });
+
+    if (!received || received.length === 0) {
+      return res.status(404).json({ message: "No received history found" });
+    }
+
+    res.status(200).json({ received });
+  } catch (err) {
+    console.error("Error fetching received history:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+exports.getSuggestedNGOs = async (req, res) => {
+  const { location, foodType, quantity, expiryDate } = req.body;
+
+  if (!location || !foodType || !quantity) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    // 🧠 Send data to AI model hosted via Flask or HuggingFace endpoint
+    const aiResponse = await axios.post("http://localhost:5000/api/predict-suggestions", {
+      location,
+      foodType,
+      quantity,
+      expiryDate
+    });
+
+    const ngoNames = aiResponse.data.suggestedNgos; // expects ['NGO1', 'NGO2', ...]
+
+    // 🔎 Now fetch full NGO details from DB
+    const ngos = await Ngo.find({ name: { $in: ngoNames } });
+
+    res.json({ ngos });
+  } catch (err) {
+    console.error("AI suggestion error:", err.message);
+    res.status(500).json({ message: "AI suggestion failed" });
   }
 };

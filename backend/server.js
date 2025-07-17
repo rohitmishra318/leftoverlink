@@ -9,8 +9,8 @@ require('dotenv').config();
 const authenticateToken = require('./middlewares/auth');
 const mongoose = require('mongoose');
 const userRoutes = require('./routes/user.routes');
-
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/leftoverlink';
+const donationRoutes = require('./routes/donationRoutes');
 
 // ✅ DB Connection
 mongoose.connect(MONGO_URI, {
@@ -28,6 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ✅ API routes
 app.use('/api/users', userRoutes);
+app.use('/api/dn', donationRoutes);
 
 // ✅ Create HTTP server and Socket.IO server
 const server = http.createServer(app);

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const FoodSchema = new mongoose.Schema({
   donor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'user',
     required: true
   },
   foodType: {
