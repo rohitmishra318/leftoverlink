@@ -64,6 +64,7 @@ module.exports.loginuser = async (req, res) => {
 
 // Add donation
 module.exports.addDonation = async (req, res) => {
+  console.log("Adding donation:", req.body);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -80,8 +81,10 @@ module.exports.addDonation = async (req, res) => {
       expiry,
       location
     });
-
+    console.log("Food donation object:", food);
+     
     await food.save();
+    
     res.status(201).json({ message: 'Donation added successfully', food });
   } catch (error) {
     console.error("Add donation error:", error);
@@ -111,8 +114,10 @@ module.exports.getMyDonations = async (req, res) => {
 
 // Accept donation
 module.exports.acceptDonation = async (req, res) => {
+  console.log("Accepting donation request:", req.body);
+  console.log("hi");
   const { donor, quantity, foodtype, location, expiry, receiver } = req.body;
-
+  console.log("Accepting donation:", req.body);
   try {
     const food = await FoodModel.findOne({
       donor,

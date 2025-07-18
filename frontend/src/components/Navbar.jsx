@@ -1,13 +1,13 @@
 import React, { useContext, useState } from "react";
 import { NotificationContext } from "../context/Notificationcontext";
-import { Bell, User } from "lucide-react"; // ✅ Add User icon
-import { useNavigate } from "react-router-dom"; // ✅ For navigation
+import { Bell, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Navbar = () => {
   const { notifications, setNotifications } = useContext(NotificationContext);
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate(); // ✅ Hook to navigate
+  const navigate = useNavigate();
 
   const clearNotifications = () => setNotifications([]);
 
@@ -28,6 +28,8 @@ const Navbar = () => {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
+          // ✅ FIX: Add the foodId to the request payload
+          foodId: notification.data.foodId,
           donor: notification.data.donor,
           receiver: notification.data.receiverId,
           quantity: notification.data.quantity,
@@ -54,10 +56,9 @@ const Navbar = () => {
 
   return (
     <nav className="bg-green-700 p-4 flex justify-between items-center text-white">
-      <h1 className="text-xl font-bold">Food Donation</h1>
+      <h1 className="text-xl font-bold">LeftOverLink</h1>
 
       <div className="flex items-center gap-4 relative">
-        {/* ✅ Profile Icon */}
         <button
           onClick={() => navigate("/profile")}
           className="hover:text-gray-200 transition"
@@ -66,7 +67,6 @@ const Navbar = () => {
           <User className="w-6 h-6" />
         </button>
 
-        {/* 🔔 Notification Bell */}
         <button onClick={() => setOpen(!open)} className="relative">
           <Bell className="w-6 h-6" />
           {notifications.length > 0 && (
@@ -76,7 +76,6 @@ const Navbar = () => {
           )}
         </button>
 
-        {/* 🔔 Notification Dropdown */}
         {open && (
           <div className="absolute right-0 mt-12 w-[22rem] bg-white text-black shadow-lg rounded-lg p-5 z-[9999] max-h-[75vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-2">Notifications</h3>

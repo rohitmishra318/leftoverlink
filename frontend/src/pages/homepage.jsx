@@ -1,66 +1,94 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Lottie from 'lottie-react';
-import animationData from '../assets/Share.json';
+import { Gift, Truck, HeartHandshake } from 'lucide-react'; // Icons for steps
+import heroBackground from '../assets/hero-background.jpg'; // Import the hero image
+import partnerLogos from '../assets/partner-logos.png';   // Import the partner logos
 
 function Homepage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 px-6 py-20 space-y-20">
+    <div className="bg-gray-50 text-gray-800">
 
-      {/* Main Content */}
-      <div className="bg-white shadow-2xl rounded-2xl p-10 md:p-16 max-w-5xl mx-auto w-full flex flex-col md:flex-row items-center justify-between gap-12">
-        
-        {/* Animation Section */}
-        <div className="md:w-1/2 flex justify-center items-center">
-          <Lottie
-            animationData={animationData}
-            loop={true}
-            className="max-h-[26rem] w-full object-contain"
-          />
-        </div>
-
-        {/* Text Section */}
-        <div className="md:w-1/2 text-left space-y-6">
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-green-700 leading-tight">
-            <span className="text-blue-600">LeftOverLink</span>
-            <br className="hidden md:block" />
+      {/* 1. Hero Section */}
+      <section 
+        className="relative text-white text-center py-32 px-4" 
+        style={{ backgroundImage: `url(${heroBackground})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="relative z-10">
+          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-4">
             Connect. Share. Impact.
           </h1>
-
-          <ul className="space-y-3 text-lg text-gray-700">
-            <li>🥗 <span className="font-semibold text-green-600">Restaurants:</span> Donate extra food</li>
-            <li>👨‍👩‍👧‍👦 <span className="font-semibold text-blue-600">Families:</span> Share meals easily</li>
-            <li>🏢 <span className="font-semibold text-purple-600">NGOs:</span> Get real-time donations</li>
-          </ul>
-
-          <p className="text-gray-800 font-medium">
-            Make food go where it’s needed — not wasted.
+          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+            We bridge the gap between surplus food and those in need. Join our mission to fight hunger and reduce waste in our community.
           </p>
-
           <Link to="/login">
-            <button className="w-full md:w-auto px-10 py-4 bg-green-500 hover:bg-green-600 text-white text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">
+            <button className="px-10 py-4 bg-green-500 hover:bg-green-600 text-white text-xl font-bold rounded-full shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">
               🍱 Start Donating
             </button>
           </Link>
         </div>
-      </div>
+      </section>
 
-      {/* Volunteer Section (no animation) */}
-      <div className="bg-white shadow-xl rounded-2xl p-10 max-w-3xl mx-auto text-center border border-green-200 hover:border-green-400 transition duration-300">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="text-5xl">🙋‍♂️</div>
-          <h2 className="text-3xl font-bold text-green-700">Join as a Volunteer</h2>
-          <p className="text-gray-600 text-lg max-w-xl">
-            Be the bridge between food donors and those in need. Help us make a difference by assisting with pickups, deliveries, and awareness.
-          </p>
-          {/* Removed the Link to /login here */}
-          <Link to="/volunteersignup"> {/* This link remains, directing to volunteer signup */}
-            <button className="mt-4 px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full shadow-md hover:shadow-lg transition duration-300 transform hover:scale-105">
-              Join Now
-            </button>
-          </Link>
+      {/* 2. How It Works Section */}
+      <section className="py-20 px-4">
+        <div className="text-center max-w-4xl mx-auto">
+          <h2 className="text-4xl font-bold text-green-700 mb-4">How It Works</h2>
+          <p className="text-lg text-gray-600 mb-12">Donating surplus food is simple, fast, and impactful. Follow these three easy steps.</p>
+          <div className="grid md:grid-cols-3 gap-12 text-left">
+            {/* Step 1 */}
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+              <Gift className="w-12 h-12 text-green-500 mb-4" />
+              <h3 className="text-2xl font-semibold mb-2">1. List Your Donation</h3>
+              <p>Quickly post details about your surplus food—what it is, the quantity, and its expiry date. Our AI can even help describe it from a photo.</p>
+            </div>
+            {/* Step 2 */}
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+              <Truck className="w-12 h-12 text-green-500 mb-4" />
+              <h3 className="text-2xl font-semibold mb-2">2. Get Matched</h3>
+              <p>Our smart system instantly notifies the most suitable and nearby NGOs who need what you have, prioritizing those who haven't received aid recently.</p>
+            </div>
+            {/* Step 3 */}
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+              <HeartHandshake className="w-12 h-12 text-green-500 mb-4" />
+              <h3 className="text-2xl font-semibold mb-2">3. Food is Received</h3>
+              <p>An NGO or a volunteer accepts your donation and arranges for pickup. You get confirmation, and food goes where it’s needed most.</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* 3. Our Impact Section */}
+      <section className="bg-green-700 text-white py-20 px-4">
+        <div className="text-center max-w-4xl mx-auto">
+          <h2 className="text-4xl font-bold mb-12">Our Impact, Together</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-4">
+              <p className="text-5xl font-extrabold">1,200+</p>
+              <p className="text-lg mt-2">Meals Donated</p>
+            </div>
+            <div className="p-4">
+              <p className="text-5xl font-extrabold">50+</p>
+              <p className="text-lg mt-2">NGOs & Restaurants Onboard</p>
+            </div>
+            <div className="p-4">
+              <p className="text-5xl font-extrabold">95%</p>
+              <p className="text-lg mt-2">Food Utilized</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Partners Section */}
+      <section className="py-20 px-4">
+        <div className="text-center max-w-4xl mx-auto">
+          <h2 className="text-4xl font-bold text-gray-800 mb-4">Trusted By Restaurants & NGOs</h2>
+          <p className="text-lg text-gray-600 mb-12">We're proud to partner with organizations committed to making a difference.</p>
+          <div className="flex justify-center">
+             <img src={partnerLogos} alt="Partner logos" className="max-w-3xl" />
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import React from 'react';
 
 function WhatsAppJoinButton() {
-  const whatsappGroupLink = "https://chat.whatsapp.com/YOUR_GROUP_INVITE_LINK";
+  const whatsappGroupLink = "https://chat.whatsapp.com/LrEl1iY7vF0HNgepHky5TD";
 
   return (
     <a

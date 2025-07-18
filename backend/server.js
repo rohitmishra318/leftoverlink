@@ -46,16 +46,16 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   // Join room by user ID
-  socket.on("join", (userId) => {
-    socket.join(userId);
-    console.log(`User ${userId} joined their personal room`);
-  });
+  socket.on('join', userId => socket.join(userId));
 
-  // Custom event to notify users about new donation
-  socket.on('new-donation', (data) => {
-    console.log('New donation broadcasted:', data);
-    // Broadcast to all except sender
-    socket.broadcast.emit('receive-donation', data);
+  socket.on('new-donation', data => {
+    // if targeting a specific receiver:
+    if (data.receiverId) {
+      io.to(data.receiverId).emit('receive-donation', data);
+    } else {
+      // broadcast to every connected donor/volunteer:
+      io.emit('receive-donation', data);
+    }
   });
 
   socket.on('disconnect', () => {

@@ -5,26 +5,27 @@ const bcrypt = require("bcryptjs");
 const UserSchema = new mongoose.Schema({
   fullname: {
     firstname: { type: String, required: true },
-    lastname: { type: String, required: true }
+    lastname:  { type: String, required: true }
   },
-  email: { type: String, unique: true, required: true },
+  email:    { type: String, unique: true, required: true },
   password: { type: String, required: true },
 });
 
 UserSchema.methods.generateAuthToken = function () {
-  const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  return token;
+  // Include both _id and fullname in the token payload
+  const payload = {
+    _id:      this._id,
+    fullname: this.fullname
+  };
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '4h' });
 };
 
 UserSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
 
-// Make hashPassword a static method
 UserSchema.statics.hashPassword = async function (password) {
-  return await bcrypt.hash(password, 10);
+  return bcrypt.hash(password, 10);
 };
 
-const userModel = mongoose.model('user', UserSchema);
-
-module.exports = userModel;
+module.exports = mongoose.model('user', UserSchema);

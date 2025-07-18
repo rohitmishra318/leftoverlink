@@ -14,6 +14,10 @@ import { jwtDecode } from "jwt-decode";
 import socket from "./socket.js";
 import VolunteerSignup from "./pages/volunteersignup.jsx";
 
+// ✅ Toastify import
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 // ✅ WhatsApp floating button
 import WhatsAppJoinButton from "./components/Whatsapp.jsx";
 
@@ -43,6 +47,9 @@ function App() {
 
       {/* ✅ Floating WhatsApp Join Button */}
       <WhatsAppJoinButton />
+
+      {/* ✅ Global Toast Notification Handler */}
+      <ToastContainer position="top-right" autoClose={3000} />
     </Router>
   );
 }

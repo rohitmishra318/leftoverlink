@@ -1,7 +1,9 @@
+// src/pages/Profile.jsx
+
 import React, { useEffect, useState } from "react";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";              // ← default import
 import socket from "../socket";
-import Badges from "../components/Badges"; // 🏅 Your badges component
+import Badges from "../components/Badges";
 import {
   BarChart,
   Bar,
@@ -9,14 +11,14 @@ import {
   YAxis,
   Tooltip,
   Legend,
-  ResponsiveContainer,
+  ResponsiveContainer
 } from "recharts";
 import DonationHistory from "../components/DonationHistory";
-
+import { User, BarChart2, BookOpen } from "lucide-react";
 
 function Profile() {
   const [userId, setUserId] = useState(null);
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState("Unknown User");
   const [totalDonated, setTotalDonated] = useState(0);
   const [totalReceived, setTotalReceived] = useState(0);
   const [newDonation, setNewDonation] = useState(null);
@@ -26,105 +28,90 @@ function Profile() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    let decoded;
     try {
-      const decoded = jwtDecode(token);
-      setUserId(decoded._id);
-      const fullName = decoded.fullname
-        ? `${decoded.fullname.firstname} ${decoded.fullname.lastname}`
-        : "Unknown User";
-      setUserName(fullName);
-      socket.emit("join", decoded._id);
+      decoded = jwtDecode(token);
     } catch (err) {
-      console.error("Token decoding failed:", err);
+      console.error("Invalid token:", err);
       return;
     }
 
-    const fetchTotalDonated = async () => {
+    // Extract _id and fullname from token payload
+    setUserId(decoded._id);
+    if (
+      decoded.fullname &&
+      decoded.fullname.firstname &&
+      decoded.fullname.lastname
+    ) {
+      
+      setUserName(
+        `${decoded.fullname.firstname} ${decoded.fullname.lastname}`
+      );
+    }
+
+    // Join socket room
+    socket.emit("join", decoded._id);
+
+    // Fetch totals and graph...
+    const fetchTotalsAndGraph = async () => {
+      // helper to fetch with Bearer
+      const fetchWithAuth = (url) =>
+        fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => r.json());
+
       try {
-        const res = await fetch("http://localhost:4000/api/users/my-donations", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (res.ok && data.donations) {
-          const total = data.donations.reduce(
+        const donationsData = await fetchWithAuth(
+          "http://localhost:4000/api/users/my-donations"
+        );
+        if (donationsData.donations) {
+          const total = donationsData.donations.reduce(
             (sum, d) => sum + (d.quantity || 0),
             0
           );
           setTotalDonated(total);
         }
-      } catch (err) {
-        console.error("Donations fetch failed:", err);
+      } catch {
         setTotalDonated(0);
       }
-    };
 
-    const fetchTotalReceived = async () => {
       try {
-        const res = await fetch("http://localhost:4000/api/users/my-received", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setTotalReceived(data.totalReceived || 0);
-        }
-      } catch (err) {
-        console.error("Received fetch failed:", err);
+        const receivedData = await fetchWithAuth(
+          "http://localhost:4000/api/users/my-received"
+        );
+        setTotalReceived(receivedData.totalReceived || 0);
+      } catch {
         setTotalReceived(0);
       }
-    };
 
-    const fetchGraphData = async () => {
       try {
-        const [donatedRes, receivedRes] = await Promise.all([
-          fetch("http://localhost:4000/api/users/donation-summary", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("http://localhost:4000/api/users/received-summary", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+        const [dJson, rJson] = await Promise.all([
+          fetchWithAuth("http://localhost:4000/api/users/donation-summary"),
+          fetchWithAuth("http://localhost:4000/api/users/received-summary")
         ]);
 
-        const donatedJson = await donatedRes.json();
-        const receivedJson = await receivedRes.json();
-
-        const dataMap = new Map();
-
-        donatedJson.forEach(({ user, name, count }) => {
-          dataMap.set(user, {
-            user,
-            name,
-            donated: count,
-            received: 0,
-          });
-        });
-
-        receivedJson.forEach(({ user, name, count }) => {
-          if (dataMap.has(user)) {
-            dataMap.get(user).received = count;
+        const map = new Map();
+        dJson.forEach(({ user, name, count }) =>
+          map.set(user, { user, name, donated: count, received: 0 })
+        );
+        rJson.forEach(({ user, name, count }) => {
+          if (map.has(user)) {
+            map.get(user).received = count;
           } else {
-            dataMap.set(user, {
-              user,
-              name,
-              donated: 0,
-              received: count,
-            });
+            map.set(user, { user, name, donated: 0, received: count });
           }
         });
-
-        const merged = Array.from(dataMap.values());
-        setGraphData(merged);
+        setGraphData(Array.from(map.values()));
       } catch (err) {
-        console.error("Error fetching graph data:", err);
+        console.error("Graph data error:", err);
       }
     };
 
-    fetchTotalDonated();
-    fetchTotalReceived();
-    fetchGraphData();
+    fetchTotalsAndGraph();
 
-    socket.on("receive-donation", (data) => setNewDonation(data));
-    socket.on("donation-accepted", (data) =>
-      alert(`🎉 Your donation was accepted by user ID: ${data.receiverId}`)
+    // Socket listeners
+    socket.on("receive-donation", setNewDonation);
+    socket.on("donation-accepted", ({ receiverId }) =>
+      alert(`🎉 Your donation was accepted by user ID: ${receiverId}`)
     );
 
     return () => {
@@ -135,134 +122,155 @@ function Profile() {
 
   const handleAcceptDonation = async () => {
     if (!newDonation || !userId) return;
-
+     console.log("Accepting donation:", newDonation);
     try {
       const res = await fetch("http://localhost:4000/api/users/accept", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`
         },
-        body: JSON.stringify({
-          donor: newDonation.donor,
-          receiver: userId,
-          quantity: newDonation.quantity,
-          foodtype: newDonation.foodtype,
-          location: newDonation.location,
-          expiry: newDonation.expiryDate,
-        }),
+         body: JSON.stringify({
+        donor:    newDonation.donorId,     // matches AddDonation’s donorId
+        receiver: userId,
+        quantity: newDonation.quantity,
+        foodtype: newDonation.foodType,    // matches AddDonation’s foodType
+        location: newDonation.location,
+        expiry:   newDonation.expiry       // matches AddDonation’s expiry
+      }),
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to accept donation");
-
-      alert("✅ Donation accepted successfully!");
+      const { message } = await res.json();
+      if (!res.ok) throw new Error(message || "Accept failed");
+      alert("✅ Donation accepted!");
       setNewDonation(null);
     } catch (err) {
-      console.error("Error accepting donation:", err);
-      alert(err.message || "Something went wrong");
+      alert(err.message || "Error accepting donation");
     }
   };
 
-  const handleRejectDonation = () => setNewDonation(null);
+  const handleRejectDonation = () => {
+    setNewDonation(null);
+  };
 
   return (
-  <div className="min-h-screen bg-gradient-to-br from-green-100 to-blue-200 p-6">
-    <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
-
-      {/* Profile Overview Card */}
-<div className="flex-1 bg-white shadow-md rounded-lg p-6 flex flex-col gap-4">
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <h2 className="text-2xl font-bold text-green-700 mb-2">👤 Profile Overview</h2>
-      {userId ? (
-        <div className="space-y-2 text-gray-800">
-          <p>
-            <span className="font-semibold">Welcome:</span>{" "}
-            <span className="text-blue-600 font-bold">{userName}</span>
-          </p>
-          <p>
-            <span className="font-semibold">Total Food Donated:</span>{" "}
-            <span className="text-green-600 font-bold">{totalDonated} kg</span>
-          </p>
-          <p>
-            <span className="font-semibold">Total Food Received:</span>{" "}
-            <span className="text-purple-600 font-bold">{totalReceived} Times</span>
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Top: Profile & Chart */}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Profile Card */}
+          <div className="lg:col-span-2 bg-white shadow rounded-lg p-8">
+            <div className="flex items-center mb-6">
+              <div className="bg-green-100 p-3 rounded-full">
+                <User className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="ml-4 text-3xl font-bold text-green-700">
+                Profile Overview
+              </h2>
+            </div>
+            <div className="flex flex-col md:flex-row justify-between">
+              <div>
+                <p className="text-2xl text-gray-800">
+                  Welcome,{" "}
+                  <span className="font-bold text-blue-600">{userName}</span>
+                </p>
+                <div className="mt-4 flex flex-wrap gap-6">
+                  <p>
+                    <span className="font-semibold">Donated:</span>{" "}
+                    <span className="text-green-600 font-bold">
+                      {totalDonated.toFixed(1)} kg
+                    </span>
+                  </p>
+                  <p>
+                    <span className="font-semibold">Received:</span>{" "}
+                    <span className="text-purple-600 font-bold">
+                      {totalReceived} times
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <Badges totalDonated={totalDonated} />
+            </div>
+          </div>
+          {/* Interaction Chart */}
+          <div className="bg-white shadow rounded-lg p-6">
+            {graphData.length > 0 ? (
+              <>
+                <h3 className="text-center text-green-700 font-semibold mb-4">
+                  Interaction Overview
+                </h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={graphData}>
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="donated" fill="#10B981" name="Donated To" />
+                    <Bar dataKey="received" fill="#8B5CF6" name="Received From" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </>
+            ) : (
+              <div className="text-center text-gray-500">
+                <BarChart2 className="mx-auto mb-2" />
+                No interaction data yet.
+              </div>
+            )}
+          </div>
         </div>
-      ) : (
-        <p className="text-gray-500">Loading profile...</p>
+
+        {/* Donation History */}
+        <div className="bg-white shadow rounded-lg p-8">
+          <div className="flex items-center mb-6">
+            <div className="bg-blue-100 p-3 rounded-full">
+              <BookOpen className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="ml-4 text-3xl font-bold text-blue-700">
+              Donation History
+            </h3>
+          </div>
+          <DonationHistory />
+        </div>
+      </div>
+
+      {/* New Donation Popup */}
+      {newDonation && (
+        <div className="fixed bottom-6 inset-x-0 mx-auto max-w-lg bg-white border-yellow-400 border-2 p-6 rounded-xl shadow-lg animate-pulse">
+          <h3 className="flex items-center text-yellow-800 font-bold text-xl mb-4">
+            <span className="mr-3">🚨</span> New Donation Available
+          </h3>
+          <div className="space-y-2 text-gray-700">
+            <p>
+              <strong>Food:</strong> {newDonation.foodtype}
+            </p>
+            <p>
+              <strong>Qty:</strong> {newDonation.quantity} kg
+            </p>
+            <p>
+              <strong>Location:</strong> {newDonation.location}
+            </p>
+            <p>
+              <strong>Expires:</strong>{" "}
+              {new Date(newDonation.expiryDate).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="mt-6 flex justify-center gap-4">
+            <button
+              onClick={handleAcceptDonation}
+              className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition"
+            >
+              ✅ Accept
+            </button>
+            <button
+              onClick={handleRejectDonation}
+              className="px-6 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
+            >
+              ❌ Ignore
+            </button>
+          </div>
+        </div>
       )}
     </div>
-
-    {/* 🎖️ Badge Display */}
-    <div className="mt-4 sm:mt-0 sm:ml-4">
-      <Badges totalDonated={totalDonated} />
-    </div>
-  </div>
-</div>
-
-
-
-      {/* Graph Card */}
-      <div className="flex-1 bg-white shadow-md rounded-lg p-6">
-        {graphData.length > 0 ? (
-          <>
-            <h3 className="text-xl font-semibold mb-4 text-green-700 text-center">
-              📊 Donation Interaction Overview
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={graphData}>
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="donated" fill="#34d399" name="Donated To" />
-                <Bar dataKey="received" fill="#818cf8" name="Received From" />
-              </BarChart>
-            </ResponsiveContainer>
-          </>
-        ) : (
-          <p className="text-gray-500 text-center">No graph data available.</p>
-        )}
-      </div>
-    </div>
-
-
-      {/* Donation History Section */}
-  <div className="max-w-6xl mx-auto mt-10">
-    <h3 className="text-xl font-bold text-green-700 mb-4">📜 Donation History</h3>
-    <DonationHistory />
-  </div>
-
-    {/* Bottom Floating Notification */}
-    {newDonation && (
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-full max-w-3xl bg-yellow-100 border border-yellow-300 p-6 rounded shadow-lg z-50">
-        <h3 className="font-bold text-lg text-orange-800">🚨 New Donation Available</h3>
-        <p><strong>Food Type:</strong> {newDonation.foodtype}</p>
-        <p><strong>Quantity:</strong> {newDonation.quantity} kg</p>
-        <p><strong>Location:</strong> {newDonation.location}</p>
-        <p><strong>Expires On:</strong> {new Date(newDonation.expiryDate).toLocaleDateString()}</p>
-
-        <div className="mt-4 flex justify-center gap-4">
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-            onClick={handleAcceptDonation}
-          >
-            ✅ Accept
-          </button>
-          <button
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-            onClick={handleRejectDonation}
-          >
-            ❌ Ignore
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-);
-
+  );
 }
 
 export default Profile;

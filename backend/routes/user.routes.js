@@ -18,16 +18,31 @@ router.post('/login', [
 ], UserController.loginuser)
 
 
-router.post('/donation',[
-    body('donor').notEmpty().withMessage('Donor ID is required.'),
-    body('foodType').notEmpty().withMessage('Food is required.'),
-    body('quantity').isInt({min: 1}).withMessage('Quantity must be a positive integer.'),
-    body('location').notEmpty().withMessage('Location is required.'),
-    body('expiry').isISO8601().toDate().withMessage('Please enter a valid date.'),
-    body('manufactureDate').isISO8601().toDate().withMessage('Please enter a valid date.'),
-    
-    
-], UserController.addDonation);
+
+
+router.post(
+  "/donation",
+  [
+    body("donor").notEmpty().withMessage("Donor ID is required."),
+    body("foodType").notEmpty().withMessage("Food is required."),
+    body("quantity")
+      .isFloat({ min: 0.1 })
+      .withMessage("Quantity must be a positive number."),
+    body("location").notEmpty().withMessage("Location is required."),
+    body("expiry")
+      .isISO8601()
+      .withMessage("Please enter a valid expiry date."),
+    body("manufactureDate")
+      .isISO8601()
+      .withMessage("Please enter a valid manufacture date."),
+  ],
+  UserController.addDonation
+);
+
+// ... other routes …
+
+module.exports = router;
+
 
 router.get('/my-donations',UserController.getMyDonations);
 
