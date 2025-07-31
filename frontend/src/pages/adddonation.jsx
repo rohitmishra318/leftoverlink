@@ -86,6 +86,7 @@ function AddDonation() {
     }
 
     try {
+      const token = localStorage.getItem('token');
       const donationData = {
         donor: userId,
         location,
@@ -99,7 +100,11 @@ function AddDonation() {
 
       const res = await axios.post(
         "http://localhost:4000/api/users/donation",
-        donationData
+        donationData,{
+  headers: {
+    Authorization: `Bearer ${token}`,  // ✅ Add this
+  },
+}
       );
 
       toast.success("Donation added successfully");
