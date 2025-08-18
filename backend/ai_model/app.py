@@ -1,5 +1,3 @@
-# backend/ai_model/app.py
-
 from flask import Flask, request, jsonify
 import pandas as pd
 import numpy as np
@@ -9,33 +7,27 @@ from geopy.distance import geodesic
 import random
 import time
 
-# Import MongoDB driver
+
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
 
-# Import your matching logic from matching_model.py
+
 from matching_model import get_coordinates, calculate_distance, preprocess_and_score
 
 app = Flask(__name__)
 
-# --- MongoDB Configuration ---
 MONGO_URI = 'mongodb://localhost:27017/'
 DB_NAME = 'leftoverlink'
 NGO_COLLECTION_NAME = 'ngos'
-# ✅ Use your collection name 'receives'
+
 DONATION_COLLECTION_NAME = 'receives'
 
-# Initialize geolocator
+
 geolocator = Nominatim(user_agent="leftoverlink-app")
 
-# Global DataFrame for NGOs, to be populated from MongoDB
 ngos_df_global = pd.DataFrame()
 
 def load_ngo_data_from_mongodb():
-    """
-    Connects to MongoDB and loads NGO data, including their last donation date,
-    into the global DataFrame.
-    """
     global ngos_df_global
     
     print("Attempting to load NGO data from MongoDB...")
@@ -45,24 +37,22 @@ def load_ngo_data_from_mongodb():
         db = client[DB_NAME]
         ngo_collection = db[NGO_COLLECTION_NAME]
 
-        # ✅ Use a MongoDB Aggregation Pipeline with your collection and field names
         pipeline = [
             {
                 '$lookup': {
-                    'from': DONATION_COLLECTION_NAME, # Changed to 'receives'
+                    'from': DONATION_COLLECTION_NAME,
                     'localField': '_id',
-                    'foreignField': 'receivedBy',      # Changed to 'receivedBy'
+                    'foreignField': 'receivedBy',
                     'as': 'donations'
                 }
             },
             {
                 '$addFields': {
-                    # Changed to 'receivedAt'
                     'last_donation_date': { '$max': '$donations.receivedAt' }
                 }
             },
             {
-                '$project': { # Exclude the large donations array from the result
+                '$project': { 
                     'donations': 0
                 }
             }
@@ -79,7 +69,7 @@ def load_ngo_data_from_mongodb():
                     "address": doc.get('address', 'N/A'),
                     "latitude": doc.get('lat'),
                     "longitude": doc.get('lng'),
-                    "last_donation_date": doc.get('last_donation_date'), # New field
+                    "last_donation_date": doc.get('last_donation_date'),
                     "accepted_food_types": doc.get('accepted_food_types', ["Cooked Meals", "Raw Vegetables", "Packaged Goods"]),
                     "capacity_min": doc.get('capacity_min', 10),
                     "capacity_max": doc.get('capacity_max', 200),
@@ -91,7 +81,6 @@ def load_ngo_data_from_mongodb():
 
             if temp_ngo_data:
                 ngos_df_global = pd.DataFrame(temp_ngo_data)
-                # Convert date column to datetime objects for calculation
                 ngos_df_global['last_donation_date'] = pd.to_datetime(ngos_df_global['last_donation_date'], errors='coerce')
                 print(f"Successfully loaded {len(ngos_df_global)} NGOs into DataFrame from MongoDB.")
                 print(ngos_df_global[['name', 'last_donation_date']].head())
@@ -108,12 +97,10 @@ def load_ngo_data_from_mongodb():
             print("MongoDB connection closed.")
     print("-" * 30)
 
-# Call the data loading function when the app starts
 with app.app_context():
     load_ngo_data_from_mongodb()
 
 
-# --- API Endpoint for Suggestions ---
 @app.route('/suggest-ngos', methods=['POST'])
 def suggest_ngos():
     data = request.json

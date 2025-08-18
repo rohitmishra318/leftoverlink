@@ -1,0 +1,81 @@
+# This file defines and runs all the services for your application together.
+version: '3.8'
+
+services:
+  # 1. The Node.js Backend API
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Use the service name 'mongo' and 'redis' to connect inside the Docker network
+      MONGO_URI: mongodb://mongo:27017/leftoverlink
+      REDIS_URL: redis://redis:6379
+      # IMPORTANT: Replace this with your actual secret key
+      JWT_SECRET: "your_super_secret_jwt_key_change_me"
+    volumes:
+      # This mounts your local backend code into the container for live updates
+      - ./backend:/app
+      # This prevents your local node_modules from overwriting the container's node_modules
+      - /app/node_modules
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - app-network
+
+  # 2. The Python AI Service
+  ai-service:
+    build:
+      context: ./backend/ai_model
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017/leftoverlink
+      FLASK_APP: app.py
+    depends_on:
+      - mongo
+    volumes:
+      - ./backend/ai_model:/app/backend/ai_model
+    networks:
+      - app-network
+
+  # 3. The Frontend (served by Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80" # Access the frontend via http://localhost:8080
+    networks:
+      - app-network
+
+  # 4. The MongoDB Database
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  # 5. The Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+# This defines the shared network that allows containers to communicate
+networks:
+  app-network:
+    driver: bridge
+
+# This creates a persistent volume for your MongoDB data so it's not lost when you stop the containers
+volumes:
+  mongo-data:

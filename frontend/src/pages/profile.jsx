@@ -44,6 +44,7 @@ function Profile() {
       decoded.fullname.lastname
     ) {
       
+      
       setUserName(
         `${decoded.fullname.firstname} ${decoded.fullname.lastname}`
       );
